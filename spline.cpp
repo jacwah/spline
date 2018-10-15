@@ -1,18 +1,68 @@
 #include <SDL2/SDL.h>
 #include <stdio.h>
 
-void
-draw_circle(uint8_t *pix, int x, int y, int rsq, int color)
+struct Point {
+    float x;
+    float y;
+};
+
+int
+binomial(int n, int k)
 {
-    for (int py = 0; py < 480; py++)
-        for (int px = 0; px < 640; px++) {
-            int dx = px - x;
-            int dy = py - y;
-            if (dx*dx + dy*dy <= rsq) {
-                uint8_t *bufpos = pix + 3*(640*py + px);
-                *bufpos++ = color & 0x0000ff;
-                *bufpos++ = color & 0x00ff00;
-                *bufpos++ = color & 0xff0000;
+    int p = 1;
+    int q = 1;
+
+    if (n - k < k)
+        k = n - k;
+
+    for (int i = 1; i <= k; ++i) {
+        p *= (n + 1 - i);
+        q *= i;
+    }
+
+    int result = p / q;
+    printf("(%d %d) = %d\n", n, k, result);
+    return result;
+}
+
+Point
+bezier(float t, Point *points, int num_points)
+{
+    Point result = {0.0f, 0.0f};
+    //float t_acc = 1.0f;
+    //float s_acc = powf(1.0f - t, num_points);;
+
+    int n = num_points-1;
+    for (int i = 0; i <= n; ++i) {
+        int binom = binomial(n, i);
+        float t_acc = pow(t, i);
+        float s_acc = pow(1.0f - t, n-i);
+        float x = binom * t_acc * s_acc * points[i].x;
+        float y = binom * t_acc * s_acc * points[i].y;
+        result.x += x;
+        result.y += y;
+        //t_acc *= t;
+        //s_acc /= (1.0f - t);
+    }
+
+    return result;
+}
+
+void
+draw_circle(uint8_t *pix, Point p, float rsq, int color)
+{
+    for (int y = 0; y < 480; y++)
+        for (int x = 0; x < 640; x++) {
+            float dx = p.x - x;
+            float dy = p.y - y;
+            float distsq = dx*dx + dy*dy;
+            float diff = rsq - distsq;
+            if (diff >= 0) {
+                /* Blend if diff < 1 */
+                uint8_t *bufpos = pix + 3*(640*y + x);
+                *bufpos++ = (color & 0x0000ff);
+                *bufpos++ = (color & 0x00ff00) >> 0x08;
+                *bufpos++ = (color & 0xff0000) >> 0x10;
             }
         }
 }
@@ -45,9 +95,12 @@ main(int argc, char **argv)
     SDL_BlitSurface(canvas_surf, NULL, windowsurf, NULL);
 
     bool quit = false;
-    int mousex, mousey;
+    Point mouse_pos;
+    Point selection[100];
+    int select_count = 0;
     while (!quit) {
-        bool have_mouse_pos = false;
+        bool new_mouse_pos = false;
+        bool select = false;
         SDL_Event ev;
         while (SDL_PollEvent(&ev)) {
             switch (ev.type) {
@@ -59,17 +112,33 @@ main(int argc, char **argv)
                     int x = ev.motion.x;
                     int y = ev.motion.y;
                     if (x > 0 && x < 640 && y > 0 && y < 480) {
-                        have_mouse_pos = true;
-                        mousex = x;
-                        mousey = y;
+                        new_mouse_pos = true;
+                        mouse_pos.x = x;
+                        mouse_pos.y = y;
                     }
                 }
                 break;
+            case SDL_MOUSEBUTTONDOWN:
+                select = true;
+                break;
             }
         }
-        if (have_mouse_pos) {
+        if (new_mouse_pos || select) {
+            if (select)
+                selection[select_count++] = mouse_pos;
             memset(canvas, 0xff, 640*480*3);
-            draw_circle(canvas, mousex, mousey, 32, 0);
+            for (int i = 0; i < select_count; ++i)
+                draw_circle(canvas, selection[i], 32, 0x00ff00);
+            if (select_count >= 2) {
+                int samples = 10 * select_count;
+                for (int i = 1; i < samples; ++i) {
+                    float t = i / (float) samples;
+                    Point p = bezier(t, selection, select_count);
+                    printf("%f, %f\n", p.x, p.y);
+                    draw_circle(canvas, p, 16, 0xff);
+                }
+            }
+            draw_circle(canvas, mouse_pos, 32, 0);
             SDL_BlitSurface(canvas_surf, NULL, windowsurf, NULL);
         }
         SDL_UpdateWindowSurface(window);
