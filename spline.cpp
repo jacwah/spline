@@ -1,5 +1,6 @@
 #include <SDL2/SDL.h>
 #include <stdio.h>
+#include <assert.h>
 
 struct Point {
     float x;
@@ -9,8 +10,11 @@ struct Point {
 int
 binomial(int n, int k)
 {
-    int p = 1;
-    int q = 1;
+    // Overflows abound
+    assert(n < 30);
+
+    long p = 1;
+    long q = 1;
 
     if (n - k < k)
         k = n - k;
@@ -21,7 +25,6 @@ binomial(int n, int k)
     }
 
     int result = p / q;
-    printf("(%d %d) = %d\n", n, k, result);
     return result;
 }
 
@@ -134,7 +137,6 @@ main(int argc, char **argv)
                 for (int i = 1; i < samples; ++i) {
                     float t = i / (float) samples;
                     Point p = bezier(t, selection, select_count);
-                    printf("%f, %f\n", p.x, p.y);
                     draw_circle(canvas, p, 16, 0xff);
                 }
             }
