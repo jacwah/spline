@@ -11,23 +11,18 @@ Point
 bezier(float t, Point *points, int num_points)
 {
     Point result = {0.0f, 0.0f};
-    //float t_acc = 1.0f;
-    //float s_acc = powf(1.0f - t, num_points);;
-
     int n = num_points-1;
     int binom = 1;
+
     for (int i = 0; i <= n; ++i) {
-        float t_acc = powf(t, i);
-        float s_acc = powf(1.0f - t, n-i);
-        float x = binom * t_acc * s_acc * points[i].x;
-        float y = binom * t_acc * s_acc * points[i].y;
+        float s = powf(t, i) * powf(1.0f - t, n-i);
+        float x = binom * s * points[i].x;
+        float y = binom * s * points[i].y;
         result.x += x;
         result.y += y;
         binom *= n-i;
         assert(binom % (i+1) == 0);
         binom /= i+1;
-        //t_acc *= t;
-        //s_acc /= (1.0f - t);
     }
 
     return result;
