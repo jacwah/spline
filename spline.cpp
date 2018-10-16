@@ -7,27 +7,6 @@ struct Point {
     float y;
 };
 
-int
-binomial(int n, int k)
-{
-    // Overflows abound
-    assert(n < 30);
-
-    long p = 1;
-    long q = 1;
-
-    if (n - k < k)
-        k = n - k;
-
-    for (int i = 1; i <= k; ++i) {
-        p *= (n + 1 - i);
-        q *= i;
-    }
-
-    int result = p / q;
-    return result;
-}
-
 Point
 bezier(float t, Point *points, int num_points)
 {
@@ -36,14 +15,17 @@ bezier(float t, Point *points, int num_points)
     //float s_acc = powf(1.0f - t, num_points);;
 
     int n = num_points-1;
+    int binom = 1;
     for (int i = 0; i <= n; ++i) {
-        int binom = binomial(n, i);
-        float t_acc = pow(t, i);
-        float s_acc = pow(1.0f - t, n-i);
+        float t_acc = powf(t, i);
+        float s_acc = powf(1.0f - t, n-i);
         float x = binom * t_acc * s_acc * points[i].x;
         float y = binom * t_acc * s_acc * points[i].y;
         result.x += x;
         result.y += y;
+        binom *= n-i;
+        assert(binom % (i+1) == 0);
+        binom /= i+1;
         //t_acc *= t;
         //s_acc /= (1.0f - t);
     }
