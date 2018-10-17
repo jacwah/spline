@@ -89,6 +89,8 @@ main(int argc, char **argv)
     SDL_GL_SetAttribute(SDL_GL_CONTEXT_MAJOR_VERSION, 3);
     SDL_GL_SetAttribute(SDL_GL_CONTEXT_MINOR_VERSION, 3);
     SDL_GL_SetAttribute(SDL_GL_CONTEXT_PROFILE_MASK, SDL_GL_CONTEXT_PROFILE_CORE);
+    SDL_GL_SetAttribute(SDL_GL_MULTISAMPLEBUFFERS, 1);
+    SDL_GL_SetAttribute(SDL_GL_MULTISAMPLESAMPLES, 8);
 
     SDL_Window *window = SDL_CreateWindow(
             "Splines",
@@ -100,6 +102,14 @@ main(int argc, char **argv)
 
     SDL_GLContext glCtx = SDL_GL_CreateContext(window);
     glewInit();
+
+    glEnable(GL_MULTISAMPLE);
+
+    int msbuffers, mssamples;
+    SDL_GL_GetAttribute(SDL_GL_MULTISAMPLEBUFFERS, &msbuffers);
+    SDL_GL_GetAttribute(SDL_GL_MULTISAMPLESAMPLES, &mssamples);
+    printf("ms buffers: %d\n", msbuffers);
+    printf("ms samples: %d\n", mssamples);
 
     GLuint vertexShader = compile_shader(GL_VERTEX_SHADER, "shader.vert");
     GLuint fragmentShader = compile_shader(GL_FRAGMENT_SHADER, "shader.frag");
