@@ -161,6 +161,13 @@ main(int argc, char **argv)
             case SDL_MOUSEBUTTONDOWN:
                 select = true;
                 break;
+            case SDL_KEYDOWN:
+                switch (ev.key.keysym.sym) {
+                case SDLK_c:
+                    select_count = 0;
+                    line_vert_count = 0;
+                    break;
+                }
             }
         }
         if (select) {
