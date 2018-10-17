@@ -92,13 +92,16 @@ main(int argc, char **argv)
     SDL_GL_SetAttribute(SDL_GL_MULTISAMPLEBUFFERS, 1);
     SDL_GL_SetAttribute(SDL_GL_MULTISAMPLESAMPLES, 8);
 
+    int width = 640;
+    int height = 480;
+
     SDL_Window *window = SDL_CreateWindow(
             "Splines",
             SDL_WINDOWPOS_UNDEFINED,
             SDL_WINDOWPOS_UNDEFINED,
-            640,
-            480,
-            SDL_WINDOW_OPENGL);
+            width,
+            height,
+            SDL_WINDOW_OPENGL | SDL_WINDOW_RESIZABLE);
 
     SDL_GLContext glCtx = SDL_GL_CreateContext(window);
     glewInit();
@@ -110,6 +113,8 @@ main(int argc, char **argv)
     SDL_GL_GetAttribute(SDL_GL_MULTISAMPLESAMPLES, &mssamples);
     printf("ms buffers: %d\n", msbuffers);
     printf("ms samples: %d\n", mssamples);
+
+    printf("Sync: %d\n", SDL_GL_GetSwapInterval());
 
     GLuint vertexShader = compile_shader(GL_VERTEX_SHADER, "shader.vert");
     GLuint fragmentShader = compile_shader(GL_FRAGMENT_SHADER, "shader.frag");
@@ -138,6 +143,8 @@ main(int argc, char **argv)
     Point *line_verts = NULL;
     int line_vert_count = 0;
     int select_count = 0;
+
+    glClearColor(0.0f, 0.0f, 0.2f, 1.0f);
     while (!quit) {
         bool new_mouse_pos = false;
         bool select = false;
@@ -151,10 +158,10 @@ main(int argc, char **argv)
                 {
                     int x = ev.motion.x;
                     int y = ev.motion.y;
-                    if (x > 0 && x < 640 && y > 0 && y < 480) {
+                    if (x > 0 && x < width && y > 0 && y < height) {
                         new_mouse_pos = true;
-                        mouse_pos.x = 2.0f * x / 640.0 - 1.0;
-                        mouse_pos.y = 2.0f * y / -480.0 + 1.0;
+                        mouse_pos.x = 2.0f * x / (float) width - 1.0;
+                        mouse_pos.y = 2.0f * y / (float) -height + 1.0;
                     }
                 }
                 break;
@@ -168,6 +175,17 @@ main(int argc, char **argv)
                     line_vert_count = 0;
                     break;
                 }
+                break;
+            case SDL_WINDOWEVENT:
+                switch (ev.window.event) {
+                case SDL_WINDOWEVENT_SIZE_CHANGED:
+                    width = ev.window.data1;
+                    height = ev.window.data2;
+                    printf("Window size change: %d, %d\n", width, height);
+                    glViewport(0, 0, width, height);
+                    break;
+                }
+                break;
             }
         }
         if (select) {
@@ -180,7 +198,6 @@ main(int argc, char **argv)
                     float t = (float) i / (line_vert_count - 1.0f);
                     line_verts[i] = bezier(t, selection, select_count);
                 }
-
                 glBufferData(
                         GL_ARRAY_BUFFER,
                         sizeof(*line_verts)*line_vert_count,
