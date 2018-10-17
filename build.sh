@@ -1,1 +1,1 @@
-c++ spline.cpp -lSDL2 -g -o spline
+c++ spline.cpp -lglew -lSDL2 -framework OpenGL -g -o spline
