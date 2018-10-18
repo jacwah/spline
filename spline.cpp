@@ -108,6 +108,10 @@ main(int argc, char **argv)
 
     glEnable(GL_MULTISAMPLE);
 
+    GLfloat widthRange[2] = {};
+    glGetFloatv(GL_ALIASED_LINE_WIDTH_RANGE, widthRange);
+    printf("Line width range: %f to %f\n", widthRange[0], widthRange[1]);
+
     int msbuffers, mssamples;
     SDL_GL_GetAttribute(SDL_GL_MULTISAMPLEBUFFERS, &msbuffers);
     SDL_GL_GetAttribute(SDL_GL_MULTISAMPLESAMPLES, &mssamples);
@@ -129,9 +133,10 @@ main(int argc, char **argv)
     glBindVertexArray(vao);
     glEnableVertexAttribArray(0);
 
-    GLuint vertexBuf;
-    glGenBuffers(1, &vertexBuf);
-    glBindBuffer(GL_ARRAY_BUFFER, vertexBuf);
+    GLuint buffers[2];
+    glGenBuffers(2, buffers);
+    GLuint lineBuf = buffers[0];
+    GLuint pointBuf = buffers[1];
 
     glVertexAttribPointer(0, 2, GL_FLOAT, GL_FALSE, 0, 0);
 
@@ -190,6 +195,13 @@ main(int argc, char **argv)
         }
         if (select) {
             selection[select_count++] = mouse_pos;
+            glBindBuffer(GL_ARRAY_BUFFER, pointBuf);
+            glBufferData(
+                    GL_ARRAY_BUFFER,
+                    sizeof(*selection)*select_count,
+                    selection,
+                    GL_DYNAMIC_DRAW);
+            ERRGL();
             if (select_count >= 2) {
                 line_vert_count = 10 * select_count;
                 printf("line_vert_count %d\n", line_vert_count);
@@ -198,6 +210,7 @@ main(int argc, char **argv)
                     float t = (float) i / (line_vert_count - 1.0f);
                     line_verts[i] = bezier(t, selection, select_count);
                 }
+                glBindBuffer(GL_ARRAY_BUFFER, lineBuf);
                 glBufferData(
                         GL_ARRAY_BUFFER,
                         sizeof(*line_verts)*line_vert_count,
@@ -207,7 +220,19 @@ main(int argc, char **argv)
             }
         }
         glClear(GL_COLOR_BUFFER_BIT);
+        ERRGL();
+
+        glBindBuffer(GL_ARRAY_BUFFER, pointBuf);
+        glVertexAttribPointer(0, 2, GL_FLOAT, GL_FALSE, 0, 0);
+        ERRGL();
+        glDrawArrays(GL_POINTS, 0, select_count);
+        ERRGL();
+
+        glBindBuffer(GL_ARRAY_BUFFER, lineBuf);
+        glVertexAttribPointer(0, 2, GL_FLOAT, GL_FALSE, 0, 0);
         glDrawArrays(GL_LINE_STRIP, 0, line_vert_count);
+        //glDrawArrays(GL_POINTS, 0, line_vert_count);
+
         ERRGL();
         SDL_GL_SwapWindow(window);
     }
