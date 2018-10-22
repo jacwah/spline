@@ -204,7 +204,6 @@ main(int argc, char **argv)
             ERRGL();
             if (select_count >= 2) {
                 line_vert_count = 10 * select_count;
-                printf("line_vert_count %d\n", line_vert_count);
                 line_verts = (Point *) realloc(line_verts, sizeof(*line_verts)*line_vert_count);
                 for (int i = 0; i < line_vert_count; ++i) {
                     float t = (float) i / (line_vert_count - 1.0f);
