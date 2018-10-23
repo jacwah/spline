@@ -2,6 +2,7 @@
 #include <GL/glew.h>
 #include <stdio.h>
 #include <assert.h>
+#include <float.h>
 
 struct Point {
     float x;
@@ -92,6 +93,12 @@ GLuint compile_shader(GLenum type, const char *filename)
         return 0; // Leak shader
 }
 
+enum MouseOp {
+    MOUSE_OP_NONE = 0,
+    MOUSE_OP_SELECT,
+    MOUSE_OP_REMOVE,
+};
+
 int
 main(int argc, char **argv)
 {
@@ -163,7 +170,7 @@ main(int argc, char **argv)
     glClearColor(0.0f, 0.0f, 0.2f, 1.0f);
     while (!quit) {
         bool new_mouse_pos = false;
-        bool select = false;
+        MouseOp mouse_op = MOUSE_OP_NONE;
         SDL_Event ev;
         while (SDL_PollEvent(&ev)) {
             switch (ev.type) {
@@ -182,7 +189,14 @@ main(int argc, char **argv)
                 }
                 break;
             case SDL_MOUSEBUTTONDOWN:
-                select = true;
+                switch (ev.button.button) {
+                case SDL_BUTTON_LEFT:
+                    mouse_op = MOUSE_OP_SELECT;
+                    break;
+                case SDL_BUTTON_RIGHT:
+                    mouse_op = MOUSE_OP_REMOVE;
+                    break;
+                }
                 break;
             case SDL_KEYDOWN:
                 switch (ev.key.keysym.sym) {
@@ -204,8 +218,34 @@ main(int argc, char **argv)
                 break;
             }
         }
-        if (select) {
-            selection[select_count++] = mouse_pos;
+        if (mouse_op) {
+            switch (mouse_op) {
+            case MOUSE_OP_SELECT:
+                selection[select_count++] = mouse_pos;
+                break;
+            case MOUSE_OP_REMOVE:
+                {
+                    float min_dist_sq = FLT_MAX;
+                    int min_idx;
+                    for (int i = 0; i < select_count; ++i) {
+                        float dx = selection[i].x - mouse_pos.x;
+                        float dy = selection[i].y - mouse_pos.y;
+                        float dist_sq = dx*dx + dy*dy;
+                        if (dist_sq < min_dist_sq) {
+                            min_dist_sq = dist_sq;
+                            min_idx = i;
+                        }
+                    }
+                    if (min_dist_sq < 1.0f / 10.0f) {
+                        memmove(selection + min_idx, selection + min_idx + 1, sizeof(*selection)*(select_count - min_idx - 1));
+                        --select_count;
+                    }
+                }
+                break;
+            default:
+                asm("int3");
+            }
+
             glBindBuffer(GL_ARRAY_BUFFER, pointBuf);
             glBufferData(
                     GL_ARRAY_BUFFER,
@@ -227,6 +267,8 @@ main(int argc, char **argv)
                         line_verts,
                         GL_DYNAMIC_DRAW);
                 ERRGL();
+            } else {
+                line_vert_count = 0;
             }
         }
         glClear(GL_COLOR_BUFFER_BIT);
