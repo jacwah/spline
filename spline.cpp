@@ -1,8 +1,15 @@
 #include <SDL2/SDL.h>
 #include <GL/glew.h>
 #include <stdio.h>
+#include <memory.h>
 #include <assert.h>
 #include <float.h>
+
+#ifdef _MSC_VER
+#define INT3 __asm int 3
+#else
+#define INT3 asm("int3")
+#endif
 
 struct Point {
     float x;
@@ -15,7 +22,7 @@ assert_divisible(unsigned long p, unsigned int q)
 #ifndef NDEBUG
     if (p % q != 0) {
         fprintf(stderr, "assert_divisible failed: %lu / %d\n", p, q);
-        asm("int3");
+        INT3;
     }
 #endif
 }
@@ -243,7 +250,7 @@ main(int argc, char **argv)
                 }
                 break;
             default:
-                asm("int3");
+                INT3;
             }
 
             glBindBuffer(GL_ARRAY_BUFFER, pointBuf);
@@ -289,4 +296,6 @@ main(int argc, char **argv)
         SDL_GL_SwapWindow(window);
     }
     puts(SDL_GetError());
+
+    return 0;
 }
