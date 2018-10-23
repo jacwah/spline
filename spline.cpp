@@ -8,21 +8,32 @@ struct Point {
     float y;
 };
 
+void
+assert_divisible(unsigned long p, unsigned int q)
+{
+#ifndef NDEBUG
+    if (p % q != 0) {
+        fprintf(stderr, "assert_divisible failed: %lu / %d\n", p, q);
+        asm("int3");
+    }
+#endif
+}
+
 Point
-bezier(float t, Point *points, int num_points)
+bezier(float t, Point *points, unsigned int num_points)
 {
     Point result = {0.0f, 0.0f};
-    int n = num_points-1;
-    int binom = 1;
+    unsigned n = num_points-1;
+    unsigned long binom = 1;
 
-    for (int i = 0; i <= n; ++i) {
+    for (unsigned i = 0; i <= n; ++i) {
         float s = powf(t, i) * powf(1.0f - t, n-i);
         float x = binom * s * points[i].x;
         float y = binom * s * points[i].y;
         result.x += x;
         result.y += y;
         binom *= n-i;
-        assert(binom % (i+1) == 0);
+        assert_divisible(binom, i+1);
         binom /= i+1;
     }
 
